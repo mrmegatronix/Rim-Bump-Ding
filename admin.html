@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Rim-Bump-Ding | Highway Contractor & Dispatch Ops (South Island)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Global Header -->
+    <header class="top-header">
+      <div class="header-brand">
+        <span class="brand-badge" style="background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);">DISPATCH</span>
+        <div style="min-width: 0;">
+          <h1 class="brand-title">Waka Kotahi / Council Ops Center</h1>
+          <div class="brand-subtitle">South Island Road Maintenance Dispatch</div>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="nz-region-indicator">
+          <span class="live-pulse"></span>
+          <span class="no-wrap">Contractor Link Active</span>
+        </div>
+        <!-- MANDATORY RULE: ALL CLOCKS MUST HAVE BLINKING COLONS -->
+        <div class="header-clock-box">
+          <span class="blinking-clock">12<span class="blinking-colon">:</span>00<span class="blinking-colon">:</span>00</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="index.html" class="btn-nav-icon">
+          <span>🗺️</span> <span class="no-wrap">Live Radar Map</span>
+        </a>
+        <a href="remote.html" class="btn-nav-icon">
+          <span>🚗</span> <span class="no-wrap">Sim Drive</span>
+        </a>
+        <button id="btn-export-csv" class="btn-nav-icon" style="background: #0284c7; color: #fff;">
+          <span>📥</span> <span class="no-wrap">Export CSV</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Admin Operational Grid (1080p Optimized) -->
+    <main class="admin-grid">
+      <!-- Left Panel: Status & Statistics -->
+      <section class="admin-panel">
+        <div class="panel-header">
+          <span class="no-wrap">Corridor Analytics</span>
+          <span>📊</span>
+        </div>
+
+        <div class="stat-card-row">
+          <div class="stat-box">
+            <div id="stat-total" class="stat-val" style="color: #38bdf8;">0</div>
+            <div class="stat-lbl">Active Hazards</div>
+          </div>
+          <div class="stat-box">
+            <div id="stat-rim" class="stat-val" style="color: #ef4444;">0</div>
+            <div class="stat-lbl">Rim Benders</div>
+          </div>
+          <div class="stat-box">
+            <div id="stat-dispatched" class="stat-val" style="color: #f97316;">0</div>
+            <div class="stat-lbl">Crews Assigned</div>
+          </div>
+          <div class="stat-box">
+            <div id="stat-repaired" class="stat-val" style="color: #10b981;">0</div>
+            <div class="stat-lbl">Repaired Today</div>
+          </div>
+        </div>
+
+        <div style="padding: 14px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+          <div class="form-label">Regional Breakdown</div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+            <span>Canterbury (SH1 / SH73)</span>
+            <span id="stat-cant" style="font-weight: 700; color: #fff;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+            <span>Otago & Lakes (SH1 / SH8 / CR)</span>
+            <span id="stat-otago" style="font-weight: 700; color: #fff;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+            <span>West Coast (SH6 / SH73)</span>
+            <span id="stat-wc" style="font-weight: 700; color: #fff;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+            <span>Southland / Fiordland (SH94)</span>
+            <span id="stat-sth" style="font-weight: 700; color: #fff;">0</span>
+          </div>
+        </div>
+
+        <div style="padding: 14px; margin-top: auto; border-top: 1px solid var(--border-color);">
+          <button id="btn-reset-seed" class="btn-cancel" style="width: 100%; border-color: #ef4444; color: #f87171;">
+            ↺ Reset Seed Data
+          </button>
+        </div>
+      </section>
+
+      <!-- Center Panel: Dispatch Queue -->
+      <section class="admin-panel" style="overflow: hidden;">
+        <div class="panel-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="no-wrap">Incident Priority Queue</span>
+            <select id="admin-hw-filter" class="form-select" style="padding: 2px 8px; font-size: 12px; height: 26px;">
+              <option value="ALL">All Highways</option>
+              <option value="SH1">SH1</option>
+              <option value="SH6">SH6</option>
+              <option value="SH73">SH73 Arthur's Pass</option>
+              <option value="SH7">SH7 Lewis Pass</option>
+              <option value="SH8">SH8 Lindis Pass</option>
+              <option value="SH94">SH94 Milford</option>
+              <option value="CR">Crown Range</option>
+            </select>
+          </div>
+          <span id="admin-queue-count" style="font-size: 12px; color: var(--text-muted);">0 items</span>
+        </div>
+
+        <div id="admin-queue-list" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <!-- Queue items generated via JS -->
+        </div>
+      </section>
+
+      <!-- Right Panel: Contractor Quick Dispatch & Hotlines -->
+      <section class="admin-panel">
+        <div class="panel-header">
+          <span class="no-wrap">Contractor Quick Dispatch</span>
+          <span>🚜</span>
+        </div>
+
+        <div style="padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
+          <div class="info-box">
+            Highway maintenance contracts across South Island are serviced by Fulton Hogan, Downer, Higgins, and HEB Construction.
+          </div>
+
+          <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 13px; color: #38bdf8; margin-bottom: 4px;">Fulton Hogan (Canterbury/Otago)</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Asphalt Cold-Mix & Pothole Crew Dispatch</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-confirm" onclick="triggerMockDispatch('Fulton Hogan Crew 4')">Assign Crew 4</button>
+              <button class="btn-confirm" onclick="triggerMockDispatch('Fulton Hogan Crew 7')">Assign Crew 7</button>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 13px; color: #38bdf8; margin-bottom: 4px;">Downer Roading (West Coast/Nelson)</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Alpine Pass Response & Stabilisation</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-confirm" onclick="triggerMockDispatch('Downer Alpine Rapid 2')">Assign Rapid 2</button>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 13px; color: #38bdf8; margin-bottom: 4px;">Southland Transport Ops</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">SH94 Milford & SH1 Southland Roads</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-confirm" onclick="triggerMockDispatch('Southland Patrol 1')">Assign Patrol 1</button>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div class="form-label" style="margin-bottom: 6px;">Dispatch Incident Log</div>
+            <div id="dispatch-activity-log" style="font-family: var(--font-mono); font-size: 11px; background: #000; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); height: 130px; overflow-y: auto; color: #38bdf8;">
+              [SYSTEM] Operations console initialized.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initBlinkingClock();
+      renderAdminView();
+
+      AppStorage.onUpdate(() => {
+        renderAdminView();
+      });
+
+      document.getElementById('admin-hw-filter').addEventListener('change', () => {
+        renderAdminView();
+      });
+
+      document.getElementById('btn-reset-seed').addEventListener('click', () => {
+        if (confirm('Reset all pothole reports to default seed state?')) {
+          AppStorage.resetSeedData();
+          logActivity('[RESET] Database reset to seed reports.');
+          showToast('Data reset to default.');
+        }
+      });
+
+      document.getElementById('btn-export-csv').addEventListener('click', exportReportsCsv);
+    });
+
+    function renderAdminView() {
+      const reports = AppStorage.getReports();
+      const hwFilter = document.getElementById('admin-hw-filter').value;
+
+      // Stats
+      const total = reports.length;
+      const rimCount = reports.filter(r => r.severity === 'rim').length;
+      const dispatchedCount = reports.filter(r => r.status === 'Dispatched').length;
+      const repairedCount = reports.filter(r => r.severity === 'repaired' || r.status === 'Repaired').length;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-rim').textContent = rimCount;
+      document.getElementById('stat-dispatched').textContent = dispatchedCount;
+      document.getElementById('stat-repaired').textContent = repairedCount;
+
+      // Region stats
+      document.getElementById('stat-cant').textContent = reports.filter(r => (r.region || '').includes('Canterbury')).length;
+      document.getElementById('stat-otago').textContent = reports.filter(r => (r.region || '').includes('Otago')).length;
+      document.getElementById('stat-wc').textContent = reports.filter(r => (r.region || '').includes('West') || (r.region || '').includes('Buller')).length;
+      document.getElementById('stat-sth').textContent = reports.filter(r => (r.region || '').includes('Southland')).length;
+
+      // Queue list
+      const listContainer = document.getElementById('admin-queue-list');
+      const filtered = reports.filter(r => hwFilter === 'ALL' || r.highway === hwFilter);
+      document.getElementById('admin-queue-count').textContent = `${filtered.length} incidents`;
+
+      listContainer.innerHTML = filtered.map(r => {
+        const sev = SEVERITIES[r.severity] || SEVERITIES.rim;
+        return `
+          <div class="report-card ${sev.badgeClass}" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="card-top">
+              <span class="card-highway-badge">${escapeHtml(r.highway)} • ${escapeHtml(r.lane || 'Both')}</span>
+              <span class="card-time">${formatTimeAgo(r.reportedAt)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div class="card-title">${escapeHtml(r.title)}</div>
+                <div class="card-meta">
+                  <span>${sev.icon} ${sev.label}</span>
+                  <span>•</span>
+                  <span>📍 ${escapeHtml(r.nearestTown || 'Route')} (${r.lat.toFixed(3)}, ${r.lng.toFixed(3)})</span>
+                </div>
+              </div>
+              <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; background: ${getStatusBg(r.status)}; color: #fff;">
+                ${escapeHtml(r.status || 'Reported')}
+              </span>
+            </div>
+            ${r.description ? `<div style="font-size: 12px; color: #94a3b8;">${escapeHtml(r.description)}</div>` : ''}
+            
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
+              ${r.status !== 'Dispatched' && r.severity !== 'repaired' ? `
+                <button class="btn-confirm" onclick="updateReportStatus('${r.id}', 'Dispatched')">
+                  🚜 Dispatch Crew
+                </button>
+              ` : ''}
+              ${r.severity !== 'repaired' ? `
+                <button class="btn-confirm" style="color: #10b981; border-color: rgba(16,185,129,0.3);" onclick="updateReportStatus('${r.id}', 'Repaired')">
+                  ✅ Mark Repaired
+                </button>
+              ` : `
+                <span style="font-size: 11px; color: #10b981; font-weight: 700;">✅ Certified Repaired</span>
+              `}
+              <button class="btn-cancel" style="padding: 4px 8px; font-size: 11px;" onclick="deleteReportItem('${r.id}')">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getStatusBg(status) {
+      if (status === 'Repaired') return '#10b981';
+      if (status === 'Dispatched') return '#f97316';
+      if (status === 'Verified') return '#0284c7';
+      return '#64748b';
+    }
+
+    function updateReportStatus(id, newStatus) {
+      AppStorage.updateStatus(id, newStatus);
+      SoundSystem.playDing();
+      logActivity(`[STATUS] Hazard ${id} updated to ${newStatus}.`);
+      showToast(`Incident status updated to ${newStatus}`);
+    }
+
+    function deleteReportItem(id) {
+      if (confirm('Delete this hazard report?')) {
+        AppStorage.deleteReport(id);
+        logActivity(`[DELETE] Incident ${id} removed.`);
+        showToast('Hazard report removed');
+      }
+    }
+
+    function triggerMockDispatch(crewName) {
+      SoundSystem.playSuccess();
+      logActivity(`[DISPATCH] ${crewName} deployed to high priority corridor.`);
+      showToast(`${crewName} deployed!`);
+    }
+
+    function logActivity(msg) {
+      const logBox = document.getElementById('dispatch-activity-log');
+      if (logBox) {
+        const time = new Date().toLocaleTimeString('en-NZ', { hour12: false });
+        logBox.innerHTML = `<div>[${time}] ${escapeHtml(msg)}</div>` + logBox.innerHTML;
+      }
+    }
+
+    function exportReportsCsv() {
+      const reports = AppStorage.getReports();
+      const headers = ['ID', 'Highway', 'Title', 'Severity', 'Status', 'Lane', 'NearestTown', 'Latitude', 'Longitude', 'Confirms', 'ReportedAt'];
+      const rows = reports.map(r => [
+        r.id,
+        `"${r.highway}"`,
+        `"${(r.title || '').replace(/"/g, '""')}"`,
+        r.severity,
+        r.status || 'Reported',
+        `"${r.lane || ''}"`,
+        `"${(r.nearestTown || '').replace(/"/g, '""')}"`,
+        r.lat,
+        r.lng,
+        r.confirms || 1,
+        `"${r.reportedAt}"`
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `SouthIsland_Potholes_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('CSV export downloaded');
+    }
+
+    function initBlinkingClock() {
+      const clockElements = document.querySelectorAll('.blinking-clock');
+      function update() {
+        const now = new Date();
+        const nzTimeStr = now.toLocaleTimeString('en-NZ', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: 'Pacific/Auckland'
+        });
+        const parts = nzTimeStr.split(':');
+        if (parts.length === 3) {
+          const html = `${parts[0]}<span class="blinking-colon">:</span>${parts[1]}<span class="blinking-colon">:</span>${parts[2]} <span style="font-size: 10px; color: var(--text-muted);">NZST</span>`;
+          clockElements.forEach(el => { el.innerHTML = html; });
+        }
+      }
+      update();
+      setInterval(update, 1000);
+    }
+
+    function formatTimeAgo(isoString) {
+      if (!isoString) return 'Just now';
+      const diffSec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHour = Math.floor(diffMin / 60);
+      if (diffHour < 24) return `${diffHour}h ago`;
+      return `${Math.floor(diffHour / 24)}d ago`;
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<span>🔔</span> <span class="no-wrap">${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(text) {
+      if (typeof text !== 'string') return text;
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

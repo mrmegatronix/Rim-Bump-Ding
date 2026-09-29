@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Rim-Bump-Ding | South Island Drive Telemetry Simulator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Global Header -->
+    <header class="top-header">
+      <div class="header-brand">
+        <span class="brand-badge" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">SIMULATOR</span>
+        <div style="min-width: 0;">
+          <h1 class="brand-title">Drive Telemetry Simulator</h1>
+          <div class="brand-subtitle">South Island GPS Route Feeder</div>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="nz-region-indicator">
+          <span class="live-pulse"></span>
+          <span class="no-wrap">GPS Broadcast Active</span>
+        </div>
+        <!-- MANDATORY RULE: ALL CLOCKS MUST HAVE BLINKING COLONS -->
+        <div class="header-clock-box">
+          <span class="blinking-clock">12<span class="blinking-colon">:</span>00<span class="blinking-colon">:</span>00</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="index.html" class="btn-nav-icon">
+          <span>🗺️</span> <span class="no-wrap">Radar Map</span>
+        </a>
+        <a href="admin.html" class="btn-nav-icon">
+          <span>🛠️</span> <span class="no-wrap">Admin</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Simulator Body -->
+    <div style="flex: 1; overflow-y: auto; padding: 20px; display: flex; justify-content: center; align-items: flex-start;">
+      <div class="remote-container" style="width: 100%; max-width: 680px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800;">South Island Virtual Test Drive</h2>
+            <div style="font-size: 12px; color: var(--text-muted);">Broadcasts real-time GPS telemetry to open radar tabs to test live proximity alarms.</div>
+          </div>
+          <span id="drive-status-badge" style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 6px; background: #334155; color: #fff;">
+            IDLE
+          </span>
+        </div>
+
+        <!-- Route Selector -->
+        <div class="form-group">
+          <label class="form-label" for="sim-route-select">Select South Island Highway Route</label>
+          <select id="sim-route-select" class="form-select">
+            <option value="arthurs">SH73 Arthur's Pass (Springfield -> Otira Viaduct -> Kumara)</option>
+            <option value="kaikoura">SH1 Kaikoura Coast (Oaro -> Peketa -> Kaikoura Peninsula)</option>
+            <option value="lindis">SH8 Lindis Pass (Omarama -> Summit -> Tarras)</option>
+            <option value="crown">Crown Range Alpine Route (Wanaka -> Cardrona -> Switchbacks)</option>
+          </select>
+        </div>
+
+        <!-- Progress Slider -->
+        <div class="sim-slider-row">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+            <span id="route-current-waypoint" style="color: var(--accent-blue);">Way point 1</span>
+            <span id="route-km-display" style="color: var(--text-muted);">0.0 km</span>
+          </div>
+          <input type="range" id="sim-progress-slider" min="0" max="100" value="0" style="width: 100%; height: 8px; accent-color: #38bdf8; cursor: pointer;">
+        </div>
+
+        <!-- Drive Controls -->
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-toggle-drive" class="btn-submit-report" style="flex: 1; background: #22c55e;">
+            ▶ Start Auto Drive
+          </button>
+          <button id="btn-reset-drive" class="btn-cancel">
+            ↺ Reset Route
+          </button>
+        </div>
+
+        <!-- Telemetry Display Card -->
+        <div style="background: #0f172a; border: 1px solid var(--border-color); border-radius: 10px; padding: 16px;">
+          <div class="form-label" style="margin-bottom: 8px;">Simulated In-Vehicle Telemetry</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-family: var(--font-mono);">
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted);">LATITUDE</div>
+              <div id="sim-lat" style="font-size: 15px; font-weight: 700; color: #fff;">-42.8272°</div>
+            </div>
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted);">LONGITUDE</div>
+              <div id="sim-lng" style="font-size: 15px; font-weight: 700; color: #fff;">171.5583°</div>
+            </div>
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted);">SPEED</div>
+              <div id="sim-speed" style="font-size: 15px; font-weight: 700; color: #38bdf8;">85 km/h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Pothole Spawner (For Testing) -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+          <div class="form-label" style="margin-bottom: 8px;">Trigger Hazard Under Car Wheels</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <button class="btn-confirm" style="color: #ef4444; border-color: rgba(239,68,68,0.4);" onclick="spawnHazardUnderCar('rim')">
+              💥 Spawn Rim Bender
+            </button>
+            <button class="btn-confirm" style="color: #f97316; border-color: rgba(249,115,22,0.4);" onclick="spawnHazardUnderCar('bump')">
+              ⚠️ Spawn Bump
+            </button>
+            <button class="btn-confirm" style="color: #eab308; border-color: rgba(234,179,8,0.4);" onclick="spawnHazardUnderCar('ding')">
+              ⚡ Spawn Ding
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script>
+    // Route Waypoint Coordinates
+    const ROUTES = {
+      arthurs: [
+        { name: "Springfield SH73 Start", lat: -43.3375, lng: 171.9297 },
+        { name: "Porters Pass Summit (939m)", lat: -43.2981, lng: 171.7458 },
+        { name: "Castle Hill Basin", lat: -43.2322, lng: 171.7167 },
+        { name: "Arthur's Pass Village", lat: -42.9431, lng: 171.5647 },
+        { name: "Otira Viaduct Apex (Rim Bender Alert Area)", lat: -42.8272, lng: 171.5583 },
+        { name: "Otira Gorge", lat: -42.8055, lng: 171.5492 },
+        { name: "Kumara Junction West Coast", lat: -42.6108, lng: 171.1892 }
+      ],
+      kaikoura: [
+        { name: "Oaro Coastal Tunnels", lat: -42.5183, lng: 173.5042 },
+        { name: "Peketa Beach (Tyre-eater zone)", lat: -42.4418, lng: 173.6429 },
+        { name: "Kaikoura Peninsula Lookout", lat: -42.4089, lng: 173.6811 },
+        { name: "Halfway Bay / Ohau Point", lat: -42.2475, lng: 173.8344 }
+      ],
+      lindis: [
+        { name: "Omarama Junction", lat: -44.4925, lng: 169.9658 },
+        { name: "Lindis Pass Saddle (971m)", lat: -44.5878, lng: 169.6425 },
+        { name: "Tarras Plains", lat: -44.8267, lng: 169.4183 },
+        { name: "Cromwell Gorge", lat: -45.0392, lng: 169.1983 }
+      ],
+      crown: [
+        { name: "Cardrona Alpine Resort Turnoff", lat: -44.8789, lng: 169.0433 },
+        { name: "Crown Range Summit Lookout (1076m)", lat: -44.9872, lng: 168.9383 },
+        { name: "Crown Terrace Zig-Zags", lat: -44.9983, lng: 168.8789 },
+        { name: "Arrowtown Road Junction", lat: -44.9881, lng: 168.8250 }
+      ]
+    };
+
+    let isDriving = false;
+    let driveTimer = null;
+    let currentStep = 0;
+    let maxSteps = 100;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initBlinkingClock();
+      updateTelemetryUI();
+
+      const routeSelect = document.getElementById('sim-route-select');
+      routeSelect.addEventListener('change', () => {
+        currentStep = 0;
+        document.getElementById('sim-progress-slider').value = 0;
+        updateTelemetryUI();
+      });
+
+      const slider = document.getElementById('sim-progress-slider');
+      slider.addEventListener('input', (e) => {
+        currentStep = parseInt(e.target.value, 10);
+        updateTelemetryUI();
+      });
+
+      const btnToggle = document.getElementById('btn-toggle-drive');
+      btnToggle.addEventListener('click', toggleDrive);
+
+      const btnReset = document.getElementById('btn-reset-drive');
+      btnReset.addEventListener('click', () => {
+        stopDrive();
+        currentStep = 0;
+        slider.value = 0;
+        updateTelemetryUI();
+      });
+    });
+
+    function toggleDrive() {
+      if (isDriving) {
+        stopDrive();
+      } else {
+        startDrive();
+      }
+    }
+
+    function startDrive() {
+      isDriving = true;
+      const btn = document.getElementById('btn-toggle-drive');
+      const badge = document.getElementById('drive-status-badge');
+      btn.textContent = '⏸ Pause Drive';
+      btn.style.background = '#eab308';
+      btn.style.color = '#000';
+      badge.textContent = 'DRIVING';
+      badge.style.background = '#22c55e';
+
+      driveTimer = setInterval(() => {
+        currentStep++;
+        if (currentStep > maxSteps) {
+          currentStep = 0;
+        }
+        document.getElementById('sim-progress-slider').value = currentStep;
+        updateTelemetryUI();
+      }, 1000);
+    }
+
+    function stopDrive() {
+      isDriving = false;
+      clearInterval(driveTimer);
+      const btn = document.getElementById('btn-toggle-drive');
+      const badge = document.getElementById('drive-status-badge');
+      btn.textContent = '▶ Start Auto Drive';
+      btn.style.background = '#22c55e';
+      btn.style.color = '#fff';
+      badge.textContent = 'PAUSED';
+      badge.style.background = '#64748b';
+    }
+
+    function getInterpolatedCoords(routeKey, progressRatio) {
+      const waypoints = ROUTES[routeKey] || ROUTES.arthurs;
+      const totalSegments = waypoints.length - 1;
+      const scaledProgress = progressRatio * totalSegments;
+      const index = Math.min(Math.floor(scaledProgress), totalSegments - 1);
+      const segmentRatio = scaledProgress - index;
+
+      const p1 = waypoints[index];
+      const p2 = waypoints[index + 1];
+
+      const lat = p1.lat + (p2.lat - p1.lat) * segmentRatio;
+      const lng = p1.lng + (p2.lng - p1.lng) * segmentRatio;
+
+      return {
+        lat,
+        lng,
+        wpName: segmentRatio > 0.5 ? p2.name : p1.name
+      };
+    }
+
+    function updateTelemetryUI() {
+      const routeKey = document.getElementById('sim-route-select').value;
+      const ratio = currentStep / maxSteps;
+      const pos = getInterpolatedCoords(routeKey, ratio);
+
+      document.getElementById('route-current-waypoint').textContent = pos.wpName;
+      document.getElementById('route-km-display').textContent = `${(ratio * 75).toFixed(1)} km`;
+      document.getElementById('sim-lat').textContent = `${pos.lat.toFixed(4)}°`;
+      document.getElementById('sim-lng').textContent = `${pos.lng.toFixed(4)}°`;
+      document.getElementById('sim-speed').textContent = isDriving ? `${78 + Math.floor(Math.sin(currentStep) * 12)} km/h` : '0 km/h';
+
+      // Broadcast location to all open radar maps
+      AppStorage.broadcastLocation({ lat: pos.lat, lng: pos.lng });
+    }
+
+    function spawnHazardUnderCar(severity) {
+      const routeKey = document.getElementById('sim-route-select').value;
+      const ratio = currentStep / maxSteps;
+      const pos = getInterpolatedCoords(routeKey, ratio);
+
+      const highwayMap = {
+        arthurs: 'SH73',
+        kaikoura: 'SH1',
+        lindis: 'SH8',
+        crown: 'CR'
+      };
+
+      const newReport = {
+        highway: highwayMap[routeKey] || 'SH1',
+        title: `Simulated ${severity.toUpperCase()} impact`,
+        description: `Logged in real-time during virtual drive test at ${pos.wpName}`,
+        lane: 'Both Lanes',
+        nearestTown: pos.wpName,
+        severity: severity,
+        lat: pos.lat,
+        lng: pos.lng,
+        confirms: 1,
+        status: 'Reported'
+      };
+
+      AppStorage.saveReport(newReport);
+      SoundSystem.playSuccess();
+      showToast(`Spawned ${severity} on ${newReport.highway}!`);
+    }
+
+    function initBlinkingClock() {
+      const clockElements = document.querySelectorAll('.blinking-clock');
+      function update() {
+        const now = new Date();
+        const nzTimeStr = now.toLocaleTimeString('en-NZ', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: 'Pacific/Auckland'
+        });
+        const parts = nzTimeStr.split(':');
+        if (parts.length === 3) {
+          const html = `${parts[0]}<span class="blinking-colon">:</span>${parts[1]}<span class="blinking-colon">:</span>${parts[2]} <span style="font-size: 10px; color: var(--text-muted);">NZST</span>`;
+          clockElements.forEach(el => { el.innerHTML = html; });
+        }
+      }
+      update();
+      setInterval(update, 1000);
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<span>🔔</span> <span class="no-wrap">${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
