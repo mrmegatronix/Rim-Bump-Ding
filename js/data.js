@@ -23,6 +23,37 @@ const HIGHWAYS = [
   { id: 'CR', name: 'Crown Range Rd' }
 ];
 
+const SOUTH_ISLAND_TOWNS = [
+  { id: 'picton', name: 'Picton (Ferry Terminal)', lat: -41.2931, lng: 174.0049, region: 'Marlborough', highway: 'SH1' },
+  { id: 'blenheim', name: 'Blenheim', lat: -41.5134, lng: 173.9612, region: 'Marlborough', highway: 'SH1' },
+  { id: 'nelson', name: 'Nelson', lat: -41.2706, lng: 173.2840, region: 'Nelson / Tasman', highway: 'SH6' },
+  { id: 'motueka', name: 'Motueka', lat: -41.0833, lng: 173.0167, region: 'Tasman', highway: 'SH60' },
+  { id: 'westport', name: 'Westport', lat: -41.7500, lng: 171.6000, region: 'Buller', highway: 'SH67' },
+  { id: 'greymouth', name: 'Greymouth', lat: -42.4500, lng: 171.2000, region: 'West Coast', highway: 'SH6' },
+  { id: 'hokitika', name: 'Hokitika', lat: -42.7167, lng: 170.9667, region: 'West Coast', highway: 'SH6' },
+  { id: 'kaikoura', name: 'Kaikoura', lat: -42.4000, lng: 173.6811, region: 'Canterbury', highway: 'SH1' },
+  { id: 'hanmer', name: 'Hanmer Springs', lat: -42.5200, lng: 172.8283, region: 'Canterbury', highway: 'SH7' },
+  { id: 'arthurs_pass', name: "Arthur's Pass Village", lat: -42.9431, lng: 171.5647, region: 'Canterbury', highway: 'SH73' },
+  { id: 'christchurch', name: 'Christchurch (Cathedral Square)', lat: -43.5321, lng: 172.6362, region: 'Canterbury', highway: 'SH1' },
+  { id: 'ashburton', name: 'Ashburton', lat: -43.9084, lng: 171.7483, region: 'Canterbury', highway: 'SH1' },
+  { id: 'timaru', name: 'Timaru', lat: -44.3967, lng: 171.2550, region: 'South Canterbury', highway: 'SH1' },
+  { id: 'oamaru', name: 'Oamaru', lat: -45.0975, lng: 170.9700, region: 'Waitaki', highway: 'SH1' },
+  { id: 'tekapo', name: 'Lake Tekapo', lat: -44.0047, lng: 170.4772, region: 'Mackenzie', highway: 'SH8' },
+  { id: 'twizel', name: 'Twizel', lat: -44.2583, lng: 170.0983, region: 'Mackenzie', highway: 'SH8' },
+  { id: 'omarama', name: 'Omarama', lat: -44.4925, lng: 169.9658, region: 'Waitaki', highway: 'SH8' },
+  { id: 'wanaka', name: 'Wanaka', lat: -44.7000, lng: 169.1500, region: 'Otago', highway: 'SH6' },
+  { id: 'queenstown', name: 'Queenstown', lat: -45.0312, lng: 168.6626, region: 'Otago', highway: 'SH6' },
+  { id: 'arrowtown', name: 'Arrowtown', lat: -44.9422, lng: 168.8319, region: 'Otago', highway: 'CR' },
+  { id: 'cromwell', name: 'Cromwell', lat: -45.0392, lng: 169.1983, region: 'Central Otago', highway: 'SH8' },
+  { id: 'alexandra', name: 'Alexandra', lat: -45.2492, lng: 169.3797, region: 'Central Otago', highway: 'SH8' },
+  { id: 'te_anau', name: 'Te Anau', lat: -45.4167, lng: 167.7167, region: 'Southland', highway: 'SH94' },
+  { id: 'milford_sound', name: 'Milford Sound', lat: -44.6714, lng: 167.9261, region: 'Fiordland', highway: 'SH94' },
+  { id: 'dunedin', name: 'Dunedin (The Octagon)', lat: -45.8788, lng: 170.5028, region: 'Otago', highway: 'SH1' },
+  { id: 'gore', name: 'Gore', lat: -46.1000, lng: 168.9400, region: 'Southland', highway: 'SH1' },
+  { id: 'invercargill', name: 'Invercargill', lat: -46.4131, lng: 168.3475, region: 'Southland', highway: 'SH1' },
+  { id: 'bluff', name: 'Bluff (Stirling Point)', lat: -46.6000, lng: 168.3333, region: 'Southland', highway: 'SH1' }
+];
+
 const SOUTH_ISLAND_JOURNEYS = [
   {
     id: 'chch_to_qt_arthurs',

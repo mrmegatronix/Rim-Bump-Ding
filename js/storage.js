@@ -6,7 +6,8 @@
 const STORAGE_KEYS = {
   REPORTS: 'rbd_reports_v1',
   USER_LOCATION: 'rbd_user_location_v1',
-  SIMULATION: 'rbd_sim_state_v1'
+  SIMULATION: 'rbd_sim_state_v1',
+  OFFLINE_QUEUE: 'rbd_offline_queue_v1'
 };
 
 class ReportStorage {
@@ -17,6 +18,16 @@ class ReportStorage {
     this.channel.onmessage = (event) => {
       this._notifyListeners(event.data);
     };
+
+    // Auto-sync when back online
+    window.addEventListener('online', () => {
+      this.syncOfflineQueue();
+      this._notifyListeners({ type: 'NETWORK_ONLINE' });
+    });
+
+    window.addEventListener('offline', () => {
+      this._notifyListeners({ type: 'NETWORK_OFFLINE' });
+    });
 
     // Ensure initial seed data is loaded
     this._ensureInitialData();
@@ -65,6 +76,81 @@ class ReportStorage {
     });
 
     return report;
+  }
+
+  isOnline() {
+    return navigator.onLine !== false;
+  }
+
+  getOfflineQueue() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveOfflineReport(report) {
+    if (!report.id) {
+      report.id = 'rbd-off-' + Math.random().toString(36).substring(2, 9);
+    }
+    if (!report.reportedAt) {
+      report.reportedAt = new Date().toISOString();
+    }
+    if (!report.status) {
+      report.status = 'Pending Sync';
+    }
+    report.isOfflineQueued = true;
+
+    const queue = this.getOfflineQueue();
+    queue.unshift(report);
+    localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
+
+    // Also include in local active list so user sees their pin immediately on the map!
+    const reports = this.getReports();
+    reports.unshift(report);
+    localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(reports));
+
+    this._notifyListeners({
+      type: 'OFFLINE_REPORT_QUEUED',
+      report: report,
+      queueCount: queue.length
+    });
+
+    return report;
+  }
+
+  syncOfflineQueue() {
+    const queue = this.getOfflineQueue();
+    if (queue.length === 0) return 0;
+
+    const reports = this.getReports();
+    let syncedCount = 0;
+
+    queue.forEach(queuedRep => {
+      // Find matching report in local list and mark as Reported
+      const existing = reports.find(r => r.id === queuedRep.id);
+      if (existing) {
+        existing.status = 'Reported';
+        delete existing.isOfflineQueued;
+      }
+      this.channel.postMessage({
+        type: 'NEW_REPORT',
+        report: existing || queuedRep
+      });
+      syncedCount++;
+    });
+
+    localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(reports));
+    localStorage.removeItem(STORAGE_KEYS.OFFLINE_QUEUE);
+
+    this._notifyListeners({
+      type: 'OFFLINE_QUEUE_SYNCED',
+      syncedCount: syncedCount
+    });
+
+    return syncedCount;
   }
 
   confirmReport(reportId) {

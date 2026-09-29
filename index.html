@@ -24,9 +24,13 @@
       </div>
 
       <div class="header-status">
-        <div class="nz-region-indicator">
+        <div id="online-badge" class="nz-region-indicator">
           <span class="live-pulse"></span>
-          <span class="no-wrap">Te Wai Pounamu Live</span>
+          <span class="no-wrap">Live Network</span>
+        </div>
+        <div id="offline-badge" class="nz-region-indicator" style="display: none; background: rgba(234, 179, 8, 0.2); border-color: #eab308; color: #fde047;">
+          <span>⚡</span> <span id="offline-status-text" class="no-wrap">Offline (0 queued)</span>
+          <button id="btn-manual-sync" style="background:#eab308;color:#000;border:none;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer;margin-left:4px;">SYNC</button>
         </div>
         <!-- MANDATORY RULE: ALL CLOCKS MUST HAVE BLINKING COLONS -->
         <div class="header-clock-box">
@@ -37,6 +41,9 @@
       <div class="header-actions">
         <button id="btn-open-journey" class="btn-nav-icon" title="South Island Journey Route Filter">
           <span>🛣️</span> <span class="no-wrap">Journey</span>
+        </button>
+        <button id="btn-open-qr" class="btn-nav-icon" title="Scan QR to open on other mobile device">
+          <span>📲</span> <span class="no-wrap">QR Code</span>
         </button>
         <button id="btn-emergency-info" class="btn-nav-icon" title="Waka Kotahi / Council Hotlines">
           <span>📞</span> <span class="no-wrap">NZTA 0800</span>
@@ -54,6 +61,26 @@
     <main class="main-content">
       <!-- Leaflet Map Container -->
       <div id="map"></div>
+
+      <!-- Driver Quick 1-Tap Report Bar (Driver Mode) -->
+      <div class="driver-quick-report-bar">
+        <button id="quick-rim" class="btn-quick-report quick-rim" title="Instant 1-Tap Rim Bender">
+          <span class="quick-icon">💥</span>
+          <span class="quick-text">RIM BENDER</span>
+        </button>
+        <button id="quick-bump" class="btn-quick-report quick-bump" title="Instant 1-Tap Bump">
+          <span class="quick-icon">⚠️</span>
+          <span class="quick-text">BUMP</span>
+        </button>
+        <button id="quick-ding" class="btn-quick-report quick-ding" title="Instant 1-Tap Ding">
+          <span class="quick-icon">⚡</span>
+          <span class="quick-text">DING</span>
+        </button>
+        <button id="open-report-btn" class="btn-quick-report" style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-color);" title="Detailed Form / Add Photo">
+          <span>📷</span>
+          <span class="quick-text">Photo / Form</span>
+        </button>
+      </div>
 
       <!-- Map Overlay HUD (Proximity Warnings & Journey Tracker) -->
       <div class="map-hud-overlay">
@@ -81,12 +108,6 @@
           <div id="proximity-desc" class="warning-hud-desc">Approaching hazard on current corridor</div>
         </div>
       </div>
-
-      <!-- Floating Primary Action Button: REPORT POTHOLE -->
-      <button id="open-report-btn" class="floating-report-btn">
-        <span style="font-size: 20px;">🚨</span>
-        <span>REPORT POTHOLE</span>
-      </button>
 
       <!-- Map Floating Utility Controls -->
       <div class="map-quick-controls">
@@ -295,16 +316,82 @@
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 20px;">🛣️</span>
             <div>
-              <h2 class="modal-title">Select South Island Journey</h2>
-              <div style="font-size: 11px; color: var(--text-muted);">Inspect pothole radar along your planned route</div>
+              <h2 class="modal-title">South Island Journey Selector</h2>
+              <div style="font-size: 11px; color: var(--text-muted);">Pick a preset scenic corridor or customize your own route</div>
             </div>
           </div>
           <button id="close-journey-btn" class="btn-close">&times;</button>
         </div>
         <div class="modal-body" style="max-height: 70vh;">
-          <div id="journey-list-container" class="journey-grid">
-            <!-- Dynamically populated via app.js -->
+          <!-- Route Mode Tabs -->
+          <div class="modal-tabs">
+            <button type="button" id="tab-btn-presets" class="modal-tab-btn active">⭐ Popular Corridors</button>
+            <button type="button" id="tab-btn-custom" class="modal-tab-btn">📍 Custom Manual Route</button>
           </div>
+
+          <!-- Presets Tab Content -->
+          <div id="tab-content-presets">
+            <div id="journey-list-container" class="journey-grid">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+
+          <!-- Manual Route Planner Tab Content -->
+          <div id="tab-content-custom" style="display: none; flex-direction: column; gap: 14px;">
+            <div style="background: #0f172a; padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label" for="manual-origin">Starting Location (Origin)</label>
+                <select id="manual-origin" class="form-select">
+                  <!-- Populated from SOUTH_ISLAND_TOWNS via app.js -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="manual-dest">Destination Town / Region</label>
+                <select id="manual-dest" class="form-select">
+                  <!-- Populated from SOUTH_ISLAND_TOWNS via app.js -->
+                </select>
+              </div>
+
+              <button type="button" id="btn-plot-manual-route" class="btn-submit-report" style="background: #0284c7; width: 100%; padding: 12px; margin-top: 6px;">
+                🗺️ Plot & Radar Custom Route
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-App QR Code Modal Dialog -->
+    <div id="qr-modal" class="modal-overlay">
+      <div class="report-dialog" role="dialog" aria-modal="true" style="max-width: 440px; text-align: center;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">📲</span>
+            <h2 class="modal-title">Scan on Mobile Device</h2>
+          </div>
+          <button id="close-qr-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body" style="align-items: center; gap: 14px;">
+          <div style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+            Scan with your passenger's phone or vehicle dashboard to open live pothole radar:
+          </div>
+
+          <!-- QR Code Image Box -->
+          <div style="background: #ffffff; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <img src="qr_github.png" alt="Scan QR Code" style="width: 220px; height: 220px; display: block;">
+          </div>
+
+          <div style="background: #0f172a; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; text-align: left;">
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-blue); text-transform: uppercase;">GitHub Pages Live URL</div>
+            <div class="no-wrap" style="font-family: var(--font-mono); font-size: 12px; color: #fff; margin-top: 2px;">
+              https://mrmegatronix.github.io/Rim-Bump-Ding/
+            </div>
+          </div>
+
+          <button id="btn-copy-live-link" class="btn-confirm" style="width: 100%; padding: 10px; font-size: 13px;">
+            📋 Copy Live Web Link
+          </button>
         </div>
       </div>
     </div>

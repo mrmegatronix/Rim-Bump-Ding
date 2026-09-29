@@ -228,19 +228,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Alert threshold: within 1.5 km
+    // 500m Screen Alert & Proximity Beeper Detection
+    const mapElement = document.getElementById('map');
+
     if (nearestHazard && shortestDistKm <= 1.5) {
       const distM = Math.round(shortestDistKm * 1000);
       hud.style.display = 'block';
       const sev = SEVERITIES[nearestHazard.severity] || SEVERITIES.rim;
-      hudTitle.innerHTML = `${sev.icon} ${sev.label.toUpperCase()} AHEAD: ${distM}M`;
-      hudDesc.textContent = `${nearestHazard.highway} near ${nearestHazard.nearestTown || 'Route'} - ${nearestHazard.title}`;
 
-      // Play alert tone if very close (< 600m)
-      if (shortestDistKm <= 0.6) {
-        SoundSystem.playProximityAlert();
+      if (shortestDistKm <= 0.5) {
+        // MANDATORY 500M SCREEN ALERT: Red perimeter flashing & proximity beeper
+        if (mapElement) mapElement.classList.add('screen-proximity-flash');
+        hud.classList.add('alert-500m');
+        hudTitle.innerHTML = `<span class="alert-500m-badge">500M SCREEN ALERT</span> ${sev.icon} ${sev.label.toUpperCase()} IN ${distM}M`;
+        hudDesc.textContent = `${nearestHazard.highway} near ${nearestHazard.nearestTown || 'Route'} - ${nearestHazard.title}`;
+        
+        // Sound proximity beeper adapted to distance
+        SoundSystem.playProximityBeeper(distM);
+      } else {
+        // Warning zone between 500m and 1.5km
+        if (mapElement) mapElement.classList.remove('screen-proximity-flash');
+        hud.classList.remove('alert-500m');
+        hudTitle.innerHTML = `${sev.icon} ${sev.label.toUpperCase()} AHEAD: ${distM}M`;
+        hudDesc.textContent = `${nearestHazard.highway} near ${nearestHazard.nearestTown || 'Route'} - ${nearestHazard.title}`;
       }
     } else {
+      if (mapElement) mapElement.classList.remove('screen-proximity-flash');
+      hud.classList.remove('alert-500m');
       hud.style.display = 'none';
     }
   }
@@ -585,17 +599,284 @@ document.addEventListener('DOMContentLoaded', () => {
     selectJourney(journeyId);
   };
 
-  if (btnOpenJourney) btnOpenJourney.addEventListener('click', openJourneyModal);
-  if (btnCloseJourney) btnCloseJourney.addEventListener('click', closeJourneyModal);
-  if (btnClearJourney) btnClearJourney.addEventListener('click', clearJourney);
-  if (btnChangeJourney) btnChangeJourney.addEventListener('click', openJourneyModal);
+  // ==========================================
+  // 1-TAP QUICK REPORT BUTTONS (DRIVER MODE)
+  // ==========================================
+  function triggerQuickReport(severity) {
+    // Find closest South Island town to current location
+    let closestTown = 'South Island Highway';
+    let closestHighway = 'SH1';
+    let minD = Infinity;
 
-  // Initial render
+    SOUTH_ISLAND_TOWNS.forEach(t => {
+      const d = computeDistanceKm(userCoords.lat, userCoords.lng, t.lat, t.lng);
+      if (d < minD) {
+        minD = d;
+        closestTown = t.name;
+        closestHighway = t.highway;
+      }
+    });
+
+    const newReport = {
+      highway: closestHighway,
+      title: `1-Tap Driver Report: ${severity.toUpperCase()}`,
+      description: `Rapid one-tap hazard logged while in motion near ${closestTown}`,
+      lane: 'Current Lane',
+      nearestTown: closestTown,
+      severity: severity,
+      lat: userCoords.lat + (Math.random() - 0.5) * 0.001,
+      lng: userCoords.lng + (Math.random() - 0.5) * 0.001,
+      confirms: 1,
+      status: 'Reported',
+      reportedAt: new Date().toISOString()
+    };
+
+    if (!AppStorage.isOnline()) {
+      AppStorage.saveOfflineReport(newReport);
+      showToast(`⚡ Logged OFFLINE: ${severity.toUpperCase()} queued for sync`);
+    } else {
+      AppStorage.saveReport(newReport);
+      showToast(`💥 Logged: 1-Tap ${severity.toUpperCase()} on ${closestHighway}!`);
+    }
+
+    if (severity === 'rim') SoundSystem.playRimBender();
+    else if (severity === 'bump') SoundSystem.playBump();
+    else SoundSystem.playDing();
+
+    renderAllReports();
+    updateOfflineStatusUI();
+  }
+
+  const btnQuickRim = document.getElementById('quick-rim');
+  const btnQuickBump = document.getElementById('quick-bump');
+  const btnQuickDing = document.getElementById('quick-ding');
+
+  if (btnQuickRim) btnQuickRim.addEventListener('click', () => triggerQuickReport('rim'));
+  if (btnQuickBump) btnQuickBump.addEventListener('click', () => triggerQuickReport('bump'));
+  if (btnQuickDing) btnQuickDing.addEventListener('click', () => triggerQuickReport('ding'));
+
+  // ==========================================
+  // IN-APP QR CODE MODAL
+  // ==========================================
+  const qrModal = document.getElementById('qr-modal');
+  const btnOpenQr = document.getElementById('btn-open-qr');
+  const btnCloseQr = document.getElementById('close-qr-btn');
+  const btnCopyLink = document.getElementById('btn-copy-live-link');
+
+  if (btnOpenQr && qrModal) {
+    btnOpenQr.addEventListener('click', () => qrModal.classList.add('active'));
+  }
+  if (btnCloseQr && qrModal) {
+    btnCloseQr.addEventListener('click', () => qrModal.classList.remove('active'));
+  }
+  if (btnCopyLink) {
+    btnCopyLink.addEventListener('click', () => {
+      const url = 'https://mrmegatronix.github.io/Rim-Bump-Ding/';
+      navigator.clipboard.writeText(url).then(() => {
+        btnCopyLink.textContent = '✅ Link Copied!';
+        SoundSystem.playDing();
+        setTimeout(() => { btnCopyLink.textContent = '📋 Copy Live Web Link'; }, 2000);
+      });
+    });
+  }
+
+  // ==========================================
+  // OFFLINE QUEUE & AUTO-SYNC ENGINE
+  // ==========================================
+  const onlineBadge = document.getElementById('online-badge');
+  const offlineBadge = document.getElementById('offline-badge');
+  const offlineStatusText = document.getElementById('offline-status-text');
+  const btnManualSync = document.getElementById('btn-manual-sync');
+
+  function updateOfflineStatusUI() {
+    const isOnline = AppStorage.isOnline();
+    const queue = AppStorage.getOfflineQueue();
+
+    if (!isOnline || queue.length > 0) {
+      if (onlineBadge) onlineBadge.style.display = isOnline ? 'flex' : 'none';
+      if (offlineBadge) {
+        offlineBadge.style.display = 'flex';
+        if (offlineStatusText) {
+          offlineStatusText.textContent = isOnline ? `Sync Ready (${queue.length})` : `Offline (${queue.length} queued)`;
+        }
+      }
+    } else {
+      if (onlineBadge) onlineBadge.style.display = 'flex';
+      if (offlineBadge) offlineBadge.style.display = 'none';
+    }
+  }
+
+  if (btnManualSync) {
+    btnManualSync.addEventListener('click', () => {
+      const count = AppStorage.syncOfflineQueue();
+      if (count > 0) {
+        SoundSystem.playSuccess();
+        showToast(`✅ Synced ${count} reports to live network!`);
+      } else {
+        showToast('All reports already synchronized');
+      }
+      updateOfflineStatusUI();
+      renderAllReports();
+    });
+  }
+
+  // ==========================================
+  // MANUAL ROUTE PLANNER (CUSTOM JOURNEYS)
+  // ==========================================
+  const tabBtnPresets = document.getElementById('tab-btn-presets');
+  const tabBtnCustom = document.getElementById('tab-btn-custom');
+  const tabContentPresets = document.getElementById('tab-content-presets');
+  const tabContentCustom = document.getElementById('tab-content-custom');
+  const manualOriginSelect = document.getElementById('manual-origin');
+  const manualDestSelect = document.getElementById('manual-dest');
+  const btnPlotManual = document.getElementById('btn-plot-manual-route');
+
+  // Populate Origin & Destination town options
+  if (manualOriginSelect && manualDestSelect) {
+    const townOptions = SOUTH_ISLAND_TOWNS.map(t => 
+      `<option value="${t.id}">${escapeHtml(t.name)} (${escapeHtml(t.region)})</option>`
+    ).join('');
+    manualOriginSelect.innerHTML = townOptions;
+    manualDestSelect.innerHTML = townOptions;
+    // Set sensible defaults: Christchurch -> Queenstown
+    manualOriginSelect.value = 'christchurch';
+    manualDestSelect.value = 'queenstown';
+  }
+
+  if (tabBtnPresets && tabBtnCustom) {
+    tabBtnPresets.addEventListener('click', () => {
+      tabBtnPresets.classList.add('active');
+      tabBtnCustom.classList.remove('active');
+      if (tabContentPresets) tabContentPresets.style.display = 'block';
+      if (tabContentCustom) tabContentCustom.style.display = 'none';
+    });
+
+    tabBtnCustom.addEventListener('click', () => {
+      tabBtnCustom.classList.add('active');
+      tabBtnPresets.classList.remove('active');
+      if (tabContentPresets) tabContentPresets.style.display = 'none';
+      if (tabContentCustom) tabContentCustom.style.display = 'flex';
+    });
+  }
+
+  if (btnPlotManual) {
+    btnPlotManual.addEventListener('click', () => {
+      const oId = manualOriginSelect.value;
+      const dId = manualDestSelect.value;
+      if (oId === dId) {
+        alert('Please select two different South Island locations.');
+        return;
+      }
+
+      const origin = SOUTH_ISLAND_TOWNS.find(t => t.id === oId);
+      const dest = SOUTH_ISLAND_TOWNS.find(t => t.id === dId);
+      if (!origin || !dest) return;
+
+      const directKm = Math.round(computeDistanceKm(origin.lat, origin.lng, dest.lat, dest.lng) * 1.25); // ~25% road winding factor
+      const hours = Math.floor(directKm / 75);
+      const mins = Math.round(((directKm / 75) - hours) * 60);
+
+      // Determine intermediate waypoints if traveling across mountains
+      const waypoints = [
+        [origin.lat, origin.lng]
+      ];
+
+      // Add midpoint waypoint if traversing across Canterbury <-> West Coast
+      if ((origin.region.includes('Canterbury') && dest.region.includes('West')) ||
+          (origin.region.includes('West') && dest.region.includes('Canterbury'))) {
+        waypoints.push([-42.9431, 171.5647]); // Arthur's Pass
+      } else if ((origin.region.includes('Canterbury') && dest.region.includes('Otago')) ||
+                 (origin.region.includes('Otago') && dest.region.includes('Canterbury'))) {
+        waypoints.push([-44.5878, 169.6425]); // Lindis Pass
+      }
+
+      waypoints.push([dest.lat, dest.lng]);
+
+      const highwaysList = Array.from(new Set([origin.highway, dest.highway, 'SH1', 'SH6', 'SH73', 'SH8']));
+
+      const customJourney = {
+        id: `custom_${oId}_to_${dId}`,
+        name: `${origin.name} → ${dest.name} (Custom Route)`,
+        shortName: `${origin.name.split(' ')[0]} → ${dest.name.split(' ')[0]}`,
+        highways: highwaysList,
+        distanceKm: directKm,
+        estDriveTime: `${hours}h ${mins}m`,
+        keyPasses: [origin.region, dest.region],
+        waypoints: waypoints
+      };
+
+      selectJourney(customJourney.id, customJourney);
+    });
+  }
+
+  // Update selectJourney to accept dynamic custom journeys
+  function selectJourney(journeyId, directCustomObj = null) {
+    const journey = directCustomObj || SOUTH_ISLAND_JOURNEYS.find(j => j.id === journeyId);
+    if (!journey) return;
+    activeJourney = journey;
+
+    // Clear previous polyline
+    journeyRouteLines.forEach(l => map.removeLayer(l));
+    journeyRouteLines = [];
+
+    // Draw route glow and main line
+    const shadowLine = L.polyline(journey.waypoints, {
+      color: '#38bdf8',
+      weight: 12,
+      opacity: 0.35,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    const coreLine = L.polyline(journey.waypoints, {
+      color: '#06b6d4',
+      weight: 5,
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    journeyRouteLines.push(shadowLine, coreLine);
+
+    // Fit map bounds to journey
+    map.fitBounds(coreLine.getBounds(), { padding: [50, 50] });
+
+    // Update HUD
+    const hud = document.getElementById('journey-hud');
+    const hudTitle = document.getElementById('journey-hud-title');
+    const hudKm = document.getElementById('journey-hud-km');
+    const hudTime = document.getElementById('journey-hud-time');
+    const hudHazards = document.getElementById('journey-hud-hazards');
+    const simLink = document.getElementById('btn-journey-sim-link');
+
+    const allReports = AppStorage.getReports();
+    const routeHazards = allReports.filter(r => journey.highways.includes(r.highway));
+    const rimCount = routeHazards.filter(r => r.severity === 'rim').length;
+
+    if (hud) {
+      hud.style.display = 'block';
+      hudTitle.textContent = `🛣️ ${journey.shortName}`;
+      hudKm.textContent = `${journey.distanceKm} km`;
+      hudTime.textContent = journey.estDriveTime;
+      hudHazards.textContent = `${routeHazards.length} hazards (${rimCount} Rim Benders)`;
+      if (simLink) {
+        simLink.href = `remote.html?route=${journey.id}`;
+      }
+    }
+
+    closeJourneyModal();
+    renderAllReports();
+    showToast(`Active Route: ${journey.shortName}`);
+    SoundSystem.playDing();
+  }
+
+  // Initial render & sync check
+  updateOfflineStatusUI();
   renderAllReports();
   checkProximityWarnings();
 
-  // Periodic proximity check every 5 seconds
-  proximityCheckInterval = setInterval(checkProximityWarnings, 5000);
+  // Periodic proximity check every 4 seconds
+  proximityCheckInterval = setInterval(checkProximityWarnings, 4000);
 });
 
 /**

@@ -139,6 +139,59 @@ class SoundAlerts {
     }
   }
 
+  playProximityBeeper(distanceMeters) {
+    if (this.muted) return;
+    try {
+      this._initContext();
+      const now = this.ctx.currentTime;
+
+      // Rate and pitch adapt to distance within 500m
+      if (distanceMeters <= 120) {
+        // Critical danger: 3 rapid aggressive high beeps
+        [0, 0.07, 0.14].forEach(offset => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1050, now + offset);
+          gain.gain.setValueAtTime(0.35, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.06);
+        });
+      } else if (distanceMeters <= 300) {
+        // Double warning beep
+        [0, 0.09].forEach(offset => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(880, now + offset);
+          gain.gain.setValueAtTime(0.3, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.07);
+        });
+      } else {
+        // Single 500m perimeter alert beep
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(750, now);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+    } catch (e) {
+      console.warn('Proximity beeper error', e);
+    }
+  }
+
   playSuccess() {
     if (this.muted) return;
     try {
