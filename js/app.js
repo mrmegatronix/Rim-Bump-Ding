@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // App State
   let currentHighwayFilter = 'ALL';
   let currentSeverityFilter = 'ALL';
+  let activeJourney = null;
+  let journeyRouteLines = [];
   let userCoords = { lat: -43.5321, lng: 172.6362 }; // Default: Christchurch / Canterbury
   let userMarker = null;
   let reportMarkers = {};
@@ -110,13 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filter reports
     const filtered = allReports.filter(r => {
-      const matchHw = currentHighwayFilter === 'ALL' || r.highway === currentHighwayFilter;
+      const matchHw = activeJourney ? activeJourney.highways.includes(r.highway) : (currentHighwayFilter === 'ALL' || r.highway === currentHighwayFilter);
       const matchSev = currentSeverityFilter === 'ALL' || r.severity === currentSeverityFilter;
       return matchHw && matchSev;
     });
 
     if (countBadge) {
-      countBadge.textContent = `${filtered.length} hazards`;
+      countBadge.textContent = activeJourney ? `${filtered.length} on route` : `${filtered.length} hazards`;
     }
 
     // Clear old map markers
@@ -458,6 +460,135 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeEmergency && emergencyModal) {
     closeEmergency.addEventListener('click', () => emergencyModal.classList.remove('active'));
   }
+
+  // Journey Selector Implementation
+  const journeyModal = document.getElementById('journey-modal');
+  const btnOpenJourney = document.getElementById('btn-open-journey');
+  const btnCloseJourney = document.getElementById('close-journey-btn');
+  const btnClearJourney = document.getElementById('btn-clear-journey');
+  const btnChangeJourney = document.getElementById('btn-journey-change');
+
+  function openJourneyModal() {
+    renderJourneyModal();
+    if (journeyModal) journeyModal.classList.add('active');
+  }
+
+  function closeJourneyModal() {
+    if (journeyModal) journeyModal.classList.remove('active');
+  }
+
+  function renderJourneyModal() {
+    const list = document.getElementById('journey-list-container');
+    if (!list) return;
+    const allReports = AppStorage.getReports();
+
+    list.innerHTML = SOUTH_ISLAND_JOURNEYS.map(j => {
+      const routeHazards = allReports.filter(r => j.highways.includes(r.highway));
+      const rimCount = routeHazards.filter(r => r.severity === 'rim').length;
+      const bumpCount = routeHazards.filter(r => r.severity === 'bump').length;
+      const isActive = activeJourney && activeJourney.id === j.id;
+
+      return `
+        <div class="journey-card ${isActive ? 'active-journey' : ''}" onclick="window.triggerSelectJourney('${j.id}')">
+          <div class="journey-card-top">
+            <span class="journey-name">${escapeHtml(j.name)}</span>
+            <span class="journey-dist">${j.distanceKm} km • ${j.estDriveTime}</span>
+          </div>
+          <div class="journey-corridors">
+            ${j.highways.map(hw => `<span class="journey-badge-pill">${escapeHtml(hw)}</span>`).join('')}
+            <span class="journey-passes">🏔️ Passes: ${escapeHtml(j.keyPasses.join(', '))}</span>
+          </div>
+          <div class="journey-hazards-summary">
+            <span style="color: ${rimCount > 0 ? '#ef4444' : '#10b981'};">💥 ${rimCount} Rim Benders</span>
+            <span>•</span>
+            <span style="color: ${bumpCount > 0 ? '#f97316' : '#94a3b8'};">⚠️ ${bumpCount} Bumps</span>
+            <span>•</span>
+            <span style="color: var(--text-muted);">${routeHazards.length} total defects</span>
+            ${isActive ? '<span style="margin-left: auto; color: #38bdf8; font-weight: 800;">ACTIVE CORRIDOR</span>' : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectJourney(journeyId) {
+    const journey = SOUTH_ISLAND_JOURNEYS.find(j => j.id === journeyId);
+    if (!journey) return;
+    activeJourney = journey;
+
+    // Clear previous polyline
+    journeyRouteLines.forEach(l => map.removeLayer(l));
+    journeyRouteLines = [];
+
+    // Draw route glow and main line
+    const shadowLine = L.polyline(journey.waypoints, {
+      color: '#38bdf8',
+      weight: 12,
+      opacity: 0.35,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    const coreLine = L.polyline(journey.waypoints, {
+      color: '#06b6d4',
+      weight: 5,
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    journeyRouteLines.push(shadowLine, coreLine);
+
+    // Fit map bounds to journey
+    map.fitBounds(coreLine.getBounds(), { padding: [50, 50] });
+
+    // Update HUD
+    const hud = document.getElementById('journey-hud');
+    const hudTitle = document.getElementById('journey-hud-title');
+    const hudKm = document.getElementById('journey-hud-km');
+    const hudTime = document.getElementById('journey-hud-time');
+    const hudHazards = document.getElementById('journey-hud-hazards');
+    const simLink = document.getElementById('btn-journey-sim-link');
+
+    const allReports = AppStorage.getReports();
+    const routeHazards = allReports.filter(r => journey.highways.includes(r.highway));
+    const rimCount = routeHazards.filter(r => r.severity === 'rim').length;
+
+    if (hud) {
+      hud.style.display = 'block';
+      hudTitle.textContent = `🛣️ ${journey.shortName}`;
+      hudKm.textContent = `${journey.distanceKm} km`;
+      hudTime.textContent = journey.estDriveTime;
+      hudHazards.textContent = `${routeHazards.length} hazards (${rimCount} Rim Benders)`;
+      if (simLink) {
+        simLink.href = `remote.html?route=${journey.id}`;
+      }
+    }
+
+    closeJourneyModal();
+    renderAllReports();
+    showToast(`Active Route: ${journey.shortName}`);
+    SoundSystem.playDing();
+  }
+
+  function clearJourney() {
+    activeJourney = null;
+    journeyRouteLines.forEach(l => map.removeLayer(l));
+    journeyRouteLines = [];
+    const hud = document.getElementById('journey-hud');
+    if (hud) hud.style.display = 'none';
+    renderAllReports();
+    showToast('Journey route cleared');
+  }
+
+  window.triggerSelectJourney = (journeyId) => {
+    selectJourney(journeyId);
+  };
+
+  if (btnOpenJourney) btnOpenJourney.addEventListener('click', openJourneyModal);
+  if (btnCloseJourney) btnCloseJourney.addEventListener('click', closeJourneyModal);
+  if (btnClearJourney) btnClearJourney.addEventListener('click', clearJourney);
+  if (btnChangeJourney) btnChangeJourney.addEventListener('click', openJourneyModal);
 
   // Initial render
   renderAllReports();

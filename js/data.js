@@ -23,6 +23,149 @@ const HIGHWAYS = [
   { id: 'CR', name: 'Crown Range Rd' }
 ];
 
+const SOUTH_ISLAND_JOURNEYS = [
+  {
+    id: 'chch_to_qt_arthurs',
+    name: "Christchurch → Queenstown (via Arthur's Pass & West Coast)",
+    shortName: "Chch → Queenstown (Arthur's)",
+    highways: ['SH73', 'SH6', 'CR'],
+    distanceKm: 590,
+    estDriveTime: '7h 30m',
+    keyPasses: ["Arthur's Pass", "Otira Gorge", "Haast Pass", "Crown Range"],
+    waypoints: [
+      [-43.5321, 172.6362], // Christchurch
+      [-43.4889, 172.1092], // Darfield
+      [-43.3375, 171.9297], // Springfield
+      [-43.2322, 171.7167], // Castle Hill
+      [-42.9431, 171.5647], // Arthur's Pass
+      [-42.8272, 171.5583], // Otira Viaduct
+      [-42.6108, 171.1892], // Kumara Jct
+      [-42.7167, 170.9667], // Hokitika
+      [-43.3889, 170.1833], // Franz Josef
+      [-43.6000, 169.7833], // Fox Glacier
+      [-44.1083, 169.3517], // Haast Pass
+      [-44.4000, 169.1667], // Makaroa
+      [-44.7000, 169.1500], // Wanaka
+      [-44.9872, 168.9383], // Crown Range
+      [-45.0312, 168.6626]  // Queenstown
+    ]
+  },
+  {
+    id: 'picton_to_chch',
+    name: "Picton Ferry → Christchurch (SH1 Coastal)",
+    shortName: "Picton → Christchurch (SH1)",
+    highways: ['SH1'],
+    distanceKm: 340,
+    estDriveTime: '4h 15m',
+    keyPasses: ["Wairau Valley", "Hundalee Hills"],
+    waypoints: [
+      [-41.2931, 174.0049], // Picton
+      [-41.5134, 173.9612], // Blenheim
+      [-41.8315, 174.1352], // Ward
+      [-42.4000, 173.6811], // Kaikoura
+      [-42.4418, 173.6429], // Peketa
+      [-42.8139, 173.2725], // Cheviot
+      [-43.1558, 172.7303], // Amberley
+      [-43.5321, 172.6362]  // Christchurch
+    ]
+  },
+  {
+    id: 'chch_to_qt_lindis',
+    name: "Christchurch → Queenstown (via Lindis Pass & Mackenzie)",
+    shortName: "Chch → Queenstown (Lindis)",
+    highways: ['SH1', 'SH8', 'CR'],
+    distanceKm: 485,
+    estDriveTime: '5h 45m',
+    keyPasses: ["Burkes Pass", "Lindis Pass"],
+    waypoints: [
+      [-43.5321, 172.6362], // Christchurch
+      [-43.7558, 171.9867], // Rakaia
+      [-43.9084, 171.7483], // Ashburton
+      [-44.0917, 171.2417], // Geraldine
+      [-44.0047, 170.4772], // Lake Tekapo
+      [-44.2583, 170.0983], // Twizel / Pukaki
+      [-44.4925, 169.9658], // Omarama
+      [-44.5878, 169.6425], // Lindis Pass
+      [-44.8267, 169.4183], // Tarras
+      [-45.0392, 169.1983], // Cromwell
+      [-45.0312, 168.6626]  // Queenstown
+    ]
+  },
+  {
+    id: 'nelson_to_greymouth',
+    name: "Nelson → Greymouth (via Buller Gorge & Coast)",
+    shortName: "Nelson → Greymouth (SH6)",
+    highways: ['SH6'],
+    distanceKm: 285,
+    estDriveTime: '3h 50m',
+    keyPasses: ["Buller Gorge", "Punakaiki Coast"],
+    waypoints: [
+      [-41.2706, 173.2840], // Nelson
+      [-41.4000, 173.0000], // Wakefield
+      [-41.8000, 172.3333], // Murchison
+      [-41.8667, 171.9833], // Inangahua
+      [-41.8741, 171.8152], // Buller Gorge
+      [-41.7500, 171.6000], // Westport
+      [-42.1167, 171.3333], // Punakaiki
+      [-42.4500, 171.2000]  // Greymouth
+    ]
+  },
+  {
+    id: 'qt_to_milford',
+    name: "Queenstown → Milford Sound (Fiordland Alpine)",
+    shortName: "Queenstown → Milford Sound",
+    highways: ['SH6', 'SH94'],
+    distanceKm: 290,
+    estDriveTime: '4h 00m',
+    keyPasses: ["Devil's Staircase", "Eglinton Valley", "Homer Tunnel"],
+    waypoints: [
+      [-45.0312, 168.6626], // Queenstown
+      [-45.3333, 168.7167], // Kingston
+      [-45.7333, 168.4333], // Lumsden
+      [-45.6667, 168.1833], // Mossburn
+      [-45.4167, 167.7167], // Te Anau
+      [-45.0210, 168.0125], // Knobs Flat
+      [-44.7644, 167.9819], // Homer Tunnel
+      [-44.6714, 167.9261]  // Milford Sound
+    ]
+  },
+  {
+    id: 'chch_to_dunedin',
+    name: "Christchurch → Dunedin (SH1 Coastal & Kilmog)",
+    shortName: "Chch → Dunedin (SH1)",
+    highways: ['SH1'],
+    distanceKm: 360,
+    estDriveTime: '4h 30m',
+    keyPasses: ["Canterbury Plains", "Kilmog Hill"],
+    waypoints: [
+      [-43.5321, 172.6362], // Christchurch
+      [-43.9084, 171.7483], // Ashburton
+      [-44.3967, 171.2550], // Timaru
+      [-45.0975, 170.9700], // Oamaru
+      [-45.4833, 170.7167], // Palmerston
+      [-45.7198, 170.6289], // Kilmog Hill
+      [-45.8788, 170.5028]  // Dunedin
+    ]
+  },
+  {
+    id: 'dunedin_to_invercargill',
+    name: "Dunedin → Invercargill (Southern Scenic)",
+    shortName: "Dunedin → Invercargill",
+    highways: ['SH1'],
+    distanceKm: 215,
+    estDriveTime: '2h 45m',
+    keyPasses: ["Clutha Valley", "Southland Plains"],
+    waypoints: [
+      [-45.8788, 170.5028], // Dunedin
+      [-46.1167, 169.9667], // Milton
+      [-46.2333, 169.7500], // Balclutha
+      [-46.1000, 168.9400], // Gore
+      [-46.3167, 168.7833], // Edendale
+      [-46.4131, 168.3475]  // Invercargill
+    ]
+  }
+];
+
 const SEVERITIES = {
   rim: {
     id: 'rim',

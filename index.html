@@ -35,6 +35,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="btn-open-journey" class="btn-nav-icon" title="South Island Journey Route Filter">
+          <span>🛣️</span> <span class="no-wrap">Journey</span>
+        </button>
         <button id="btn-emergency-info" class="btn-nav-icon" title="Waka Kotahi / Council Hotlines">
           <span>📞</span> <span class="no-wrap">NZTA 0800</span>
         </button>
@@ -52,8 +55,27 @@
       <!-- Leaflet Map Container -->
       <div id="map"></div>
 
-      <!-- Map Overlay HUD (Proximity Warnings) -->
+      <!-- Map Overlay HUD (Proximity Warnings & Journey Tracker) -->
       <div class="map-hud-overlay">
+        <!-- Active Journey HUD -->
+        <div id="journey-hud" class="active-journey-hud">
+          <div class="journey-hud-top">
+            <span id="journey-hud-title" class="journey-hud-title">🛣️ Christchurch → Queenstown</span>
+            <button id="btn-clear-journey" class="journey-hud-close" title="Clear Route">&times;</button>
+          </div>
+          <div id="journey-hud-stats" class="journey-hud-stats">
+            <span id="journey-hud-km">590 km</span>
+            <span>•</span>
+            <span id="journey-hud-time">7h 30m</span>
+            <span>•</span>
+            <span id="journey-hud-hazards" style="color: #ef4444; font-weight: 800;">3 Hazards</span>
+          </div>
+          <div class="journey-hud-actions">
+            <button id="btn-journey-change" class="btn-confirm" style="font-size: 11px;">Change Route</button>
+            <a id="btn-journey-sim-link" href="remote.html" class="btn-journey-drive">🚗 Simulate Drive</a>
+          </div>
+        </div>
+
         <div id="proximity-hud" class="proximity-warning-hud">
           <div id="proximity-title" class="warning-hud-title">💥 RIM BENDER AHEAD</div>
           <div id="proximity-desc" class="warning-hud-desc">Approaching hazard on current corridor</div>
@@ -261,6 +283,27 @@
               </div>
               <div style="font-size: 13px; font-weight: 700;">03 441 0499</div>
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journey Selector Modal Dialog -->
+    <div id="journey-modal" class="modal-overlay">
+      <div class="report-dialog" role="dialog" aria-modal="true" style="max-width: 580px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🛣️</span>
+            <div>
+              <h2 class="modal-title">Select South Island Journey</h2>
+              <div style="font-size: 11px; color: var(--text-muted);">Inspect pothole radar along your planned route</div>
+            </div>
+          </div>
+          <button id="close-journey-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh;">
+          <div id="journey-list-container" class="journey-grid">
+            <!-- Dynamically populated via app.js -->
           </div>
         </div>
       </div>
