@@ -525,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  function selectJourney(journeyId) {
-    const journey = SOUTH_ISLAND_JOURNEYS.find(j => j.id === journeyId);
+  function selectJourney(journeyId, directCustomObj = null) {
+    const journey = directCustomObj || SOUTH_ISLAND_JOURNEYS.find(j => j.id === journeyId);
     if (!journey) return;
     activeJourney = journey;
 
@@ -598,6 +598,19 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerSelectJourney = (journeyId) => {
     selectJourney(journeyId);
   };
+
+  if (btnOpenJourney) {
+    btnOpenJourney.addEventListener('click', openJourneyModal);
+  }
+  if (btnCloseJourney) {
+    btnCloseJourney.addEventListener('click', closeJourneyModal);
+  }
+  if (btnClearJourney) {
+    btnClearJourney.addEventListener('click', clearJourney);
+  }
+  if (btnChangeJourney) {
+    btnChangeJourney.addEventListener('click', openJourneyModal);
+  }
 
   // ==========================================
   // 1-TAP QUICK REPORT BUTTONS (DRIVER MODE)
@@ -807,67 +820,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       selectJourney(customJourney.id, customJourney);
     });
-  }
-
-  // Update selectJourney to accept dynamic custom journeys
-  function selectJourney(journeyId, directCustomObj = null) {
-    const journey = directCustomObj || SOUTH_ISLAND_JOURNEYS.find(j => j.id === journeyId);
-    if (!journey) return;
-    activeJourney = journey;
-
-    // Clear previous polyline
-    journeyRouteLines.forEach(l => map.removeLayer(l));
-    journeyRouteLines = [];
-
-    // Draw route glow and main line
-    const shadowLine = L.polyline(journey.waypoints, {
-      color: '#38bdf8',
-      weight: 12,
-      opacity: 0.35,
-      lineCap: 'round',
-      lineJoin: 'round'
-    }).addTo(map);
-
-    const coreLine = L.polyline(journey.waypoints, {
-      color: '#06b6d4',
-      weight: 5,
-      opacity: 0.95,
-      lineCap: 'round',
-      lineJoin: 'round'
-    }).addTo(map);
-
-    journeyRouteLines.push(shadowLine, coreLine);
-
-    // Fit map bounds to journey
-    map.fitBounds(coreLine.getBounds(), { padding: [50, 50] });
-
-    // Update HUD
-    const hud = document.getElementById('journey-hud');
-    const hudTitle = document.getElementById('journey-hud-title');
-    const hudKm = document.getElementById('journey-hud-km');
-    const hudTime = document.getElementById('journey-hud-time');
-    const hudHazards = document.getElementById('journey-hud-hazards');
-    const simLink = document.getElementById('btn-journey-sim-link');
-
-    const allReports = AppStorage.getReports();
-    const routeHazards = allReports.filter(r => journey.highways.includes(r.highway));
-    const rimCount = routeHazards.filter(r => r.severity === 'rim').length;
-
-    if (hud) {
-      hud.style.display = 'block';
-      hudTitle.textContent = `🛣️ ${journey.shortName}`;
-      hudKm.textContent = `${journey.distanceKm} km`;
-      hudTime.textContent = journey.estDriveTime;
-      hudHazards.textContent = `${routeHazards.length} hazards (${rimCount} Rim Benders)`;
-      if (simLink) {
-        simLink.href = `remote.html?route=${journey.id}`;
-      }
-    }
-
-    closeJourneyModal();
-    renderAllReports();
-    showToast(`Active Route: ${journey.shortName}`);
-    SoundSystem.playDing();
   }
 
   // Initial render & sync check
